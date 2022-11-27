@@ -10,17 +10,19 @@ Delay command until specific time.
 ## Usage
 
 ```sh
-duntil [+]@POSIXTIME COMMAND [ARGS..]
+duntil @POSIXTIME COMMAND [ARGS..]
+duntil +SECONDS COMMAND [ARGS..]
 ```
 
-### +
-
-Relative time if defined. (default: absolute time)
-
-### POSIXTIME
+### @POSIXTIME
 
 Seconds since 1970-01-01 00:00:00 UTC.
-It can includes `.` for decimal.
+It can be a decimal number.
+
+### +SECONDS
+
+Seconds to wait.
+It can be a decimal number.
 
 ## Example
 
@@ -33,5 +35,5 @@ $ duntil @$(date +%s -d "2100-01-01 00:00") echo "Happy New Year!"
 Echo "Ramen is ready." after 3 minutes:
 
 ```sh
-$ duntil +@180 echo "Ramen is ready."
+$ duntil +180 echo "Ramen is ready."
 ```

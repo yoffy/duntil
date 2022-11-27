@@ -1,8 +1,9 @@
-#include <algorithm>
+#include <cerrno>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <cstdint>
+#include <limits>
 
 #include <time.h>
 #include <unistd.h>
@@ -11,57 +12,42 @@ namespace {
 
 	void usage()
 	{
-		std::puts("usage: duntil [+]@POSIXTIME COMMAND [ARGS..]");
+		std::puts("usage: duntil @POSIXTIME COMMAND [ARGS..]");
+		std::puts("       duntil +SECONDS COMMAND [ARGS..]");
 	}
 
 	int parseDate(const char* dateStr, timespec& t, bool& isAbsolute)
 	{
-		std::size_t len = strlen(dateStr);
-		const char* end = &dateStr[len];
-
-		if ( len < 2 ) {
-			return 1;
-		}
-		if ( dateStr[0] == '+' ) {
+		switch ( dateStr[0] ) {
+		case '+':
 			isAbsolute = false;
-			dateStr += 1;
-		} else {
+			break;
+
+		case '@':
 			isAbsolute = true;
-		}
-		if ( dateStr[0] != '@' ) {
-			return 1;
+			break;
+
+		default:
+			return EINVAL;
 		}
 		dateStr += 1;
 
-		const char* dot = strchr(dateStr, '.');
-
-		if ( dot ) {
-			if ( dateStr == dot ) {
-				t.tv_sec = 0;
-			} else {
-				t.tv_sec = time_t(std::atoll(dateStr));
-			}
-
-			const char* p = &dot[1];
-			std::ptrdiff_t afterLen = std::min(ptrdiff_t(9), end - p);
-			std::uint32_t after = 0;
-
-			for ( ptrdiff_t i = 0; i < afterLen; i += 1 ) {
-				char n = p[i];
-				if ( n < '0' || '9' < n ) {
-					return 1;
-				}
-				after = after * 10 + (n - '0');
-			}
-			for ( std::ptrdiff_t i = afterLen; i < 9; i += 1 ) {
-				after *= 10;
-			}
-
-			t.tv_nsec = after;
-		} else {
-			t.tv_sec = std::atoll(dateStr);
-			t.tv_nsec = 0;
+		char* next = nullptr;
+		double secs = std::strtod(dateStr, &next);
+		if ( errno == ERANGE ) {
+			return ERANGE;
 		}
+		if ( next[0] != '\0' ) {
+			return EINVAL;
+		}
+
+		double isecs = 0;
+		double mod1 = std::modf(secs, &isecs);
+		if ( isecs > std::numeric_limits<time_t>::max() ) {
+			return ERANGE;
+		}
+		t.tv_sec = time_t(isecs);
+		t.tv_nsec = long(mod1 * 1000000000.0);
 
 		return 0;
 	}
@@ -81,7 +67,9 @@ int main(int argc, char* argv[])
 	timespec date{};
 	bool isAbsolute = false;
 
-	if ( parseDate(dateStr, date, isAbsolute) ) {
+	int err = parseDate(dateStr, date, isAbsolute);
+	if ( err ) {
+		std::fprintf(stderr, "%s\n", std::strerror(err));
 		usage();
 		return 1;
 	}
