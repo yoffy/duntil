@@ -71,18 +71,22 @@ int main(int argc, char* argv[])
 
 	timespec date{};
 	bool isAbsolute = false;
-
 	int err = parseDate(dateStr, date, isAbsolute);
 	if ( err ) {
 		std::fprintf(stderr, "%s\n", std::strerror(err));
 		usage();
 		return 1;
 	}
-	int flags = isAbsolute ? TIMER_ABSTIME : 0;
 
+	int flags = isAbsolute ? TIMER_ABSTIME : 0;
 	if ( clock_nanosleep(CLOCK_REALTIME, flags, &date, NULL) ) {
 		std::perror("clock_nanosleep");
 		return 1;
 	}
-	return execvp(argv[0], argv);
+
+	int status = execvp(argv[0], argv);
+	if ( status == -1 ) {
+		std::fprintf(stderr, "%s\n", std::strerror(errno));
+	}
+	return status;
 }
