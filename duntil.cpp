@@ -16,6 +16,11 @@ namespace {
 		std::puts("       duntil +SECONDS COMMAND [ARGS..]");
 	}
 
+	// 'double' changes value when time_t over 53-bit
+	const double k_time_t_limit =
+		double(std::numeric_limits<time_t>::max())
+		* (1.0 - std::numeric_limits<double>::epsilon());
+
 	int parseDate(const char* dateStr, timespec& t, bool& isAbsolute)
 	{
 		switch ( dateStr[0] ) {
@@ -43,7 +48,7 @@ namespace {
 
 		double isecs = 0;
 		double mod1 = std::modf(secs, &isecs);
-		if ( isecs > std::numeric_limits<time_t>::max() ) {
+		if ( isecs < 0 || k_time_t_limit < isecs ) {
 			return ERANGE;
 		}
 		t.tv_sec = time_t(isecs);
