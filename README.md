@@ -7,6 +7,12 @@ Delay command until specific time.
 * Linux
 * C++11 compiler
 
+## Build
+
+```sh
+$ make
+```
+
 ## Usage
 
 ```sh
